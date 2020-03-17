@@ -6,6 +6,8 @@ import os.path
 import unittest
 import sys
 
+from collections import namedtuple
+
 
 class DotBracket:
     '''
@@ -16,11 +18,25 @@ class DotBracket:
         structure (str):    A string of dots and brackets.
         pairs (list):       A list of pairs e.g. [(0, 120), (1, 119), ...] parsed from `structure` attribute.
     '''
+    BRACKETS = {'(':')', '[':']', '{':'}', '<':'>', 'A':'a'}
 
     @staticmethod
     def from_string(sequence, structure):
-        # TODO: implement this
         pairs = []
+        enchancedStructure = []
+        StructInfo = namedtuple('StructInfo', ['character', 'position'])
+
+        for index, char in enumerate(structure):
+            if char != '.':
+                enchancedStructure.append(StructInfo(char, index))
+
+        while enchancedStructure:
+            openBracket = enchancedStructure.pop(0)
+            bracketToSearch = DotBracket.BRACKETS[openBracket.character]
+            closeBracket = next(x for x in enchancedStructure if x.character == bracketToSearch)
+            enchancedStructure.remove(closeBracket)
+            pairs.append((openBracket.position, closeBracket.position))
+
         return DotBracket(sequence, structure, pairs)
 
     def __init__(self, sequence, structure, pairs):
@@ -36,8 +52,8 @@ class DotBracket:
             BPSEQ:      An instance of BPSEQ object created from this object.
         :return:
         '''
-        # TODO: implement this
         entries = []
+        
         return BPSEQ(entries)
 
 
