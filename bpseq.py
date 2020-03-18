@@ -7,8 +7,13 @@ import unittest
 import sys
 
 from collections import namedtuple
-from itertools import groupby
+from itertools import groupby, tee
 
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 class DotBracket:
     '''
@@ -21,6 +26,15 @@ class DotBracket:
     '''
     BRACKETS = {'(':')', '[':']', '{':'}', '<':'>'}
 
+
+
+    @staticmethod
+    def findAdjacentGroup(groupedStructures, openBracket, closeBracket):
+        for first, second in pairwise(groupedStructures):
+            if first.bracket == openBracket and second.bracket == closeBracket:
+                return first, second
+
+
     @staticmethod
     def from_string(sequence, structure):
         pairs = []
@@ -29,26 +43,30 @@ class DotBracket:
         GroupInfo = namedtuple('GroupInfo', ['bracket', 'structInfoList'])
 
         for index, char in enumerate(structure):
-            if char != '.':
                 enchancedStructure.append(StructInfo(char, index))
         
         for openBracket, closeBracket in DotBracket.BRACKETS.items():
             groupedStructures = []
-            oneTypeBrackets = [x for x in enchancedStructure if x.character in (openBracket, closeBracket)]
+            oneTypeBrackets = [x for x in enchancedStructure if x.character in (openBracket, closeBracket, '.')]
 
             groupIter = groupby(oneTypeBrackets, key=lambda structInfo: structInfo.character)
             for key, group in groupIter: 
                 groupedStructures.append(GroupInfo(key, list(group)))
+            groupedStructures = [x for x in groupedStructures if x.bracket != '.']
 
             while groupedStructures:
-                firstGroup = groupedStructures.pop(0)
-                openingBracket, structure = firstGroup.bracket, firstGroup.structInfoList
-                bracketToSearch = DotBracket.BRACKETS[openingBracket]
-                correspondingGroup = next(x for x in groupedStructures if x.bracket == bracketToSearch)
-                groupedStructures.remove(correspondingGroup)
-                correspondingGroup.structInfoList.reverse()
-                for first, corr in zip(firstGroup.structInfoList, correspondingGroup.structInfoList):
-                    pairs.append((first.position, corr.position))
+                firstOpen, secondClose = DotBracket.findAdjacentGroup(groupedStructures, openBracket, closeBracket)
+                while firstOpen.structInfoList and secondClose.structInfoList:
+                    x = firstOpen.structInfoList.pop()
+                    y = secondClose.structInfoList.pop(0)
+                    pairs.append((x.position, y.position))
+
+                if len(firstOpen.structInfoList) == 0 and len(secondClose.structInfoList) == 0:
+                    groupedStructures.remove(firstOpen)
+                    groupedStructures.remove(secondClose)
+                else:
+                    emptyGroup = min(firstOpen, secondClose, key= lambda x: x.structInfoList)
+                    groupedStructures.remove(emptyGroup)
 
         return DotBracket(sequence, structure, pairs)
 
@@ -142,6 +160,6 @@ def generate_test_function(json_path):
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    for json_path in glob.iglob('data/1ivs.json'):
+    for json_path in glob.iglob('data/????.json'):
         suite.addTest(unittest.FunctionTestCase(generate_test_function(json_path)))
     unittest.TextTestRunner().run(suite)
