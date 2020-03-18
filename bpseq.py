@@ -71,7 +71,10 @@ class DotBracket:
             try:
                 pairNumber = next(x[1] for x in self.pairs if x[0] == index)
             except StopIteration:
-                pairNumber = 0
+                try:
+                    pairNumber = next(x[0] for x in self.pairs if x[1] == index)
+                except StopIteration:
+                    pairNumber = 0
             entries.append((start, sequenceChar, pairNumber))
         return BPSEQ(entries)
 
