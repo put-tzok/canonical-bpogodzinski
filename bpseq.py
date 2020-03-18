@@ -7,6 +7,7 @@ import unittest
 import sys
 
 from collections import namedtuple
+from itertools import groupby
 
 
 class DotBracket:
@@ -25,17 +26,29 @@ class DotBracket:
         pairs = []
         enchancedStructure = []
         StructInfo = namedtuple('StructInfo', ['character', 'position'])
+        GroupInfo = namedtuple('GroupInfo', ['bracket', 'structInfoList'])
 
         for index, char in enumerate(structure):
             if char != '.':
                 enchancedStructure.append(StructInfo(char, index))
+        
+        for openBracket, closeBracket in DotBracket.BRACKETS.items():
+            groupedStructures = []
+            oneTypeBrackets = [x for x in enchancedStructure if x.character in (openBracket, closeBracket)]
 
-        while enchancedStructure:
-            openBracket = enchancedStructure.pop(0)
-            bracketToSearch = DotBracket.BRACKETS[openBracket.character]
-            closeBracket = next(x for x in enchancedStructure if x.character == bracketToSearch)
-            enchancedStructure.remove(closeBracket)
-            pairs.append((openBracket.position, closeBracket.position))
+            groupIter = groupby(oneTypeBrackets, key=lambda structInfo: structInfo.character)
+            for key, group in groupIter: 
+                groupedStructures.append(GroupInfo(key, list(group)))
+
+            while groupedStructures:
+                firstGroup = groupedStructures.pop(0)
+                openingBracket, structure = firstGroup.bracket, firstGroup.structInfoList
+                bracketToSearch = DotBracket.BRACKETS[openingBracket]
+                correspondingGroup = next(x for x in groupedStructures if x.bracket == bracketToSearch)
+                groupedStructures.remove(correspondingGroup)
+                correspondingGroup.structInfoList.reverse()
+                for first, corr in zip(firstGroup.structInfoList, correspondingGroup.structInfoList):
+                    pairs.append((first.position, corr.position))
 
         return DotBracket(sequence, structure, pairs)
 
@@ -53,7 +66,13 @@ class DotBracket:
         :return:
         '''
         entries = []
-        
+        for index, sequenceChar in enumerate(self.sequence):
+            start = index + 1
+            try:
+                pairNumber = next(x[1] for x in self.pairs if x[0] == index)
+            except StopIteration:
+                pairNumber = 0
+            entries.append((start, sequenceChar, pairNumber))
         return BPSEQ(entries)
 
 
