@@ -70,9 +70,11 @@ class DotBracket:
             start = index + 1
             try:
                 pairNumber = next(x[1] for x in self.pairs if x[0] == index)
+                pairNumber = pairNumber + 1
             except StopIteration:
                 try:
                     pairNumber = next(x[0] for x in self.pairs if x[1] == index)
+                    pairNumber = pairNumber + 1
                 except StopIteration:
                     pairNumber = 0
             entries.append((start, sequenceChar, pairNumber))
