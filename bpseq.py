@@ -19,7 +19,7 @@ class DotBracket:
         structure (str):    A string of dots and brackets.
         pairs (list):       A list of pairs e.g. [(0, 120), (1, 119), ...] parsed from `structure` attribute.
     '''
-    BRACKETS = {'(':')', '[':']', '{':'}', '<':'>', 'A':'a'}
+    BRACKETS = {'(':')', '[':']', '{':'}', '<':'>'}
 
     @staticmethod
     def from_string(sequence, structure):
@@ -142,6 +142,6 @@ def generate_test_function(json_path):
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    for json_path in glob.iglob('data/????.json'):
+    for json_path in glob.iglob('data/1ivs.json'):
         suite.addTest(unittest.FunctionTestCase(generate_test_function(json_path)))
     unittest.TextTestRunner().run(suite)
