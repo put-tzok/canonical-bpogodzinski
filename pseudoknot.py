@@ -212,6 +212,21 @@ def partitionStemEntries(uniqueEntries):
 def getSecondSequence(entries, positions):
     return ''.join([x[1] for x in entries if x[0] in positions])[::-1]
 
+def partitionHairpinEntries(entries):
+    partitionedEntries = []
+    tmp = []
+    for a, b in pairwise(entries):
+        if a[2] != 0 and b[2] == 0:
+            tmp.append(a)
+            tmp.append(b)
+        elif tmp and a[2] == 0 and b[2] == 0:
+            tmp.append(b)
+        elif tmp and a[2] == 0 and b[2] != 0:
+            tmp.append(b)
+            partitionedEntries.append(tmp)
+            tmp = []
+    return [partition for partition in partitionedEntries if partition[0][0] == partition[-1][2] and partition[0][2] == partition[-1][0]]
+
 class BPSEQ:
     '''
     RNA structure.
@@ -284,8 +299,11 @@ class BPSEQ:
         Returns:
             list:       A list of Hairpin objects.
         '''
-        # TODO: implement this
         hairpins = []
+        partitionedEntries = partitionHairpinEntries(self.entries)
+        for partition in partitionedEntries:
+            sequence = ''.join([x[1] for x in partition])
+            hairpins.append(Hairpin(begin=partition[0][0], end=partition[-1][0], sequence=sequence))
         return hairpins
 
     def pseudoknots(self) -> List[Pseudoknot]:
