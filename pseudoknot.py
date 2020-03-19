@@ -8,6 +8,8 @@ import unittest
 from dataclasses import dataclass
 from typing import List
 
+from itertools import tee
+
 
 @dataclass
 class Strand:
@@ -86,8 +88,12 @@ class Stem:
         Returns:
             bool:           Status of the pseudoknot relation.
         '''
-        # TODO: implement this (change the False below to a meaningful expression)
-        return False
+
+        i = self.strand1.begin
+        j = self.strand2.begin
+        k = other.strand1.begin
+        l = other.strand2.begin
+        return i < k < j < l or k < i < l < j
 
 
 @dataclass
@@ -166,6 +172,45 @@ class Decoder(json.JSONDecoder):
         if all(key in dct for key in ('stem1', 'stem2')):
             return Pseudoknot(dct['stem1'], dct['stem2'])
 
+def isPartitionUnique(entry, uniqueEntries):
+    for uniqueEntry in uniqueEntries:
+        reversedEntry = entry[::-1]
+        reversedEntry = [x[::-1] for x in reversedEntry]
+        if all(a[0] == b[0] and a[2] == b[2] for a, b in zip(uniqueEntry,reversedEntry)):
+            return False
+    return True
+
+def removeDuplicatePartitions(partitionedEntries):
+    uniqueEntries = []
+    while partitionedEntries:
+        entry = partitionedEntries.pop(0)
+        if isPartitionUnique(entry, uniqueEntries):
+            uniqueEntries.append(entry)
+    return uniqueEntries
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+def partitionStemEntries(uniqueEntries):
+    partitionedEntries = []
+    tmp = []
+    for a, b in pairwise(uniqueEntries):
+        if b[0] - a[0] == 1 and b[2] - a[2] == -1:
+            tmp.append(a)
+        else:
+            tmp.append(a)
+            partitionedEntries.append(tmp)
+            tmp = []
+    if b[0] - a[0] == 1 and b[2] - a[2] == -1:
+        tmp.append(b)
+    partitionedEntries.append(tmp)
+    return [partition for partition in partitionedEntries if len(partition) > 1]
+
+def getSecondSequence(entries, positions):
+    return ''.join([x[1] for x in entries if x[0] in positions])[::-1]
 
 class BPSEQ:
     '''
@@ -218,8 +263,18 @@ class BPSEQ:
         Returns:
             list:       A list of Stem objects.
         '''
-        # TODO: implement this
         stems = []
+        filteredEntries = [x for x in self.entries if x[2] != 0]
+        partitionedEntries = partitionStemEntries(filteredEntries)
+        uniqueEntries = removeDuplicatePartitions(partitionedEntries)
+        for partition in uniqueEntries:
+            sequence1 = ''.join([x[1] for x in partition])
+            positions2 = [x[2] + 1 for x in partition]
+            sequence2 = getSecondSequence(self.entries, positions2)
+            strand1 = Strand(begin=partition[0][0], end=partition[-1][0], sequence=sequence1)
+            strand2 = Strand(begin=partition[0][2], end=partition[-1][2], sequence=sequence2)
+            stem = Stem(strand1=strand1, strand2=strand2)
+            stems.append(stem)
         return stems
 
     def hairpins(self) -> List[Hairpin]:
